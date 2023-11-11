@@ -39,9 +39,7 @@ class CustomDataset(Dataset):
   def __init__(self, 
                num_sentences=NUM_SENTENCES, 
                batch_size=BATCH_SIZE, 
-               split="train",
-               save_path=None,
-               metadata_path=None):
+               split="train"):
     self.rawdata = load_dataset("bookcorpus", split=split, streaming=True)
     self.new_data = list()
 
@@ -55,10 +53,6 @@ class CustomDataset(Dataset):
     self._make_new_dataset()
     self.idx2word = {k: v for v, k in self.word2idx.items()}
     self.vocab_size = len(self.word2idx)
-
-    # Now saving the dataset
-    # with open(save_path, 'w') as f:
-      
       
 
   def __len__(self, ):
