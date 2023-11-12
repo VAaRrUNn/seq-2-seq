@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import warnings
 from tqdm.auto import tqdm
-
+import matplotlib.pyplot as plt
 # For type hint
 from typing import Tuple, List, Optional
 warnings.filterwarnings("ignore")
@@ -52,25 +52,6 @@ class RNN(nn.Module):
 
 
 
-def train_rnn(model, sen, tokenizer, criterion, optim, h_prev=None):
-  if h_prev == None:
-    h_prev = model.initHidden()
-
-  # tokenizing the sentence
-  tokens = torch.tensor(tokenizer.encode(sen).ids)
-  loss = 0
-  for i in tqdm(range(len(tokens)-1)):
-    h_prev, out = m(tokens[i], h_prev)
-    out = out.view(-1)
-    target = tokens[i+1]
-    # print(f"h: {h_prev.shape}, out: {out.shape}")
-    # print(f"{target.shape}, {target}")
-    loss += criterion(out, target)
-    print(f"per token loss: {loss.item()}")
-  optim.zero_grad()
-  loss.backward()
-  optim.step()
-    
 
 
 
@@ -89,15 +70,15 @@ if __name__ == "__main__":
 
     criterion = nn.CrossEntropyLoss()
     optim = torch.optim.AdamW(params=m.parameters(), lr=1e-3)
+    losses = []
 
-    for sentences in sentencesdataloader:
+    for sentences in tqdm(sentencesdataloader):
       for sen in sentences:
-        logging.info(f"sentence: {sen}")
-        train_rnn(m, sen, tokenizer, criterion, optim)
-      break
-    # simple training loop (batch_size = 1)
-    # for sentences in sentences_dataloader:
+        # logging.info(f"sentence: {sen}")
+        losses.append(train_rnn(m, sen, tokenizer, criterion, optim))
 
+
+    plt.plot(range(len(losses)), losses)
         # currently doing character based model
 
         
