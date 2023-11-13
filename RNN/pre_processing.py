@@ -86,6 +86,7 @@ logging.info(f"Dataset loaded with {len(sentencesdataset)} sentences")
 
 # Now tokenizing
 if __name__ == "__main__":
+  # For training the tokenizer first time and then saving it.
   logging.info(f"Now training tokenizer...")
   tokenizer = Tokenizer(BPE(unk_token="[UNK]"))
   tokenizer.pre_tokenizer = Whitespace()

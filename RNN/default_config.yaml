@@ -1,2 +1,4 @@
 BATCH_SIZE: 1
 NUM_SENTENCES: 1000
+in_embd: 300
+h_embd: 200

@@ -56,29 +56,7 @@ class RNN(nn.Module):
 
 
 if __name__ == "__main__":
-    print("Running test...")
-    from pre_processing import sentencesdataloader
-    import logging
-    from tokenizers import Tokenizer
-
-    tokenizer = Tokenizer.from_file("tokenizer.json")
-    vocab_size = tokenizer.get_vocab_size()
-    in_embd, h_embd = 10, 12
-    m = RNN(in_embd=in_embd, h_embd=h_embd, vocab_size=vocab_size)
-
-    logging.info(f"Dry running for one example")
-
-    criterion = nn.CrossEntropyLoss()
-    optim = torch.optim.AdamW(params=m.parameters(), lr=1e-3)
-    losses = []
-
-    for sentences in tqdm(sentencesdataloader):
-      for sen in sentences:
-        # logging.info(f"sentence: {sen}")
-        losses.append(train_rnn(m, sen, tokenizer, criterion, optim))
-
-
-    plt.plot(range(len(losses)), losses)
-        # currently doing character based model
+  pass
+  
 
         

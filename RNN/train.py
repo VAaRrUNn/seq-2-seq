@@ -5,7 +5,18 @@ import torch
 from tqdm.auto import tqdm
 import torch.nn as nn
 from model import RNN
+import yaml
+import sys
+from pathlib import Path
 import matplotlib.pyplot as plt
+
+try:
+    config_path = Path(__file__).parent / "default_config.yaml"
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+except Exception as e:
+    logging.error(f"Error loading configuration file: {e}")
+    sys.exit(1)
 
 
 def train_rnn(model, sen, tokenizer, criterion, optim, h_prev=None):
@@ -30,7 +41,7 @@ def train_rnn(model, sen, tokenizer, criterion, optim, h_prev=None):
 
 tokenizer = Tokenizer.from_file("tokenizer.json")
 vocab_size = tokenizer.get_vocab_size()
-in_embd, h_embd = 10, 12
+in_embd, h_embd = config["in_embd"], config["h_embd"]
 m = RNN(in_embd=in_embd, h_embd=h_embd, vocab_size=vocab_size)
 
 logging.info(f"Starting Training")
@@ -42,7 +53,15 @@ losses = []
 for sentences in tqdm(sentencesdataloader):
   for sen in sentences:
     losses.append(train_rnn(m, sen, tokenizer, criterion, optim))
-  break
+  # break
 
+logging.info(f"Done training")
 
 plt.plot(range(len(losses)), losses)
+plt.show()
+
+
+# saving...
+plt.plot(range(len(losses)), losses)
+plt.savefig('loss_plot.png')
+torch.save(m.state_dict(), 'model_weights.pth')
