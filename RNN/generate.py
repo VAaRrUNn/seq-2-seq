@@ -19,7 +19,7 @@ except Exception as e:
     logging.error(f"Error loading configuration file: {e}")
     sys.exit(1)
 
-tokenizer = Tokenizer.from_file("tokenizer.json")
+tokenizer = Tokenizer.from_file("byteBPE.json")
 vocab_size = tokenizer.get_vocab_size()
 in_embd, h_embd = config["in_embd"], config["h_embd"]
 

@@ -53,7 +53,6 @@ losses = []
 for sentences in tqdm(sentencesdataloader):
   for sen in sentences:
     losses.append(train_rnn(m, sen, tokenizer, criterion, optim))
-  # break
 
 logging.info(f"Done training")
 
