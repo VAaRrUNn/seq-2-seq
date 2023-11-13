@@ -1,7 +1,7 @@
 from pre_processing import sentencesdataloader
 import logging
 from tokenizers import Tokenizer
-import torch 
+import torch
 from tqdm.auto import tqdm
 import torch.nn as nn
 from model import RNN
@@ -20,24 +20,24 @@ except Exception as e:
 
 
 def train_rnn(model, sen, tokenizer, criterion, optim, h_prev=None):
-  if h_prev == None:
-    h_prev = model.initHidden()
+    if h_prev == None:
+        h_prev = model.initHidden()
 
-  # tokenizing the sentence
-  tokens = torch.tensor(tokenizer.encode(sen).ids)
-  loss = 0
-  for i in range(len(tokens)-1):
-    h_prev, out = m(tokens[i], h_prev)
-    out = out.view(-1)
-    target = tokens[i+1]
-    loss += criterion(out, target)
-  optim.zero_grad()
-  loss.backward()
-  optim.step()
-  return loss.item()
-    
+    # tokenizing the sentence
+    tokens = torch.tensor(tokenizer.encode(sen).ids)
+    loss = 0
+    for i in range(len(tokens)-1):
+        h_prev, out = m(tokens[i], h_prev)
+        out = out.view(-1)
+        target = tokens[i+1]
+        loss += criterion(out, target)
+    optim.zero_grad()
+    loss.backward()
+    optim.step()
+    return loss.item()
 
-# 
+
+#
 
 tokenizer = Tokenizer.from_file("tokenizer.json")
 vocab_size = tokenizer.get_vocab_size()
@@ -51,8 +51,8 @@ optim = torch.optim.AdamW(params=m.parameters(), lr=1e-3)
 losses = []
 
 for sentences in tqdm(sentencesdataloader):
-  for sen in sentences:
-    losses.append(train_rnn(m, sen, tokenizer, criterion, optim))
+    for sen in sentences:
+        losses.append(train_rnn(m, sen, tokenizer, criterion, optim))
 
 logging.info(f"Done training")
 

@@ -1,11 +1,19 @@
 """
 Currently ongoing...
 """
+import torch
+from tokenizers import Tokenizer
 from torch.nn.utils.rnn import pad_sequence
+from pre_processing import sentencesdataloader
+
+tokenizer = Tokenizer.from_file("byteBPE.json")
+sentences = [list_of_sentences_from_dataloader_here]
 
 # Assuming sentences is a list of sentences
 tokenized_sentences = [torch.tensor(tokenizer.encode(sentence).ids) for sentence in sentences]
 
+_add_PAD_to_the_tokenizers_special_tokens_too_
+also confirm from GPT how to deal with PAD while training the model? where does end goes then?
 # Padding the sequences to have the same length
 padded_sequences = pad_sequence(tokenized_sentences, batch_first=True, padding_value=tokenizer.token_to_id('[PAD]'))
 
