@@ -1,6 +1,7 @@
 
 """
 This script will load the dataset with specified rows
+This script will also train the tokenizer and save the tokenizer
 """
 
 # Essential Libraries
@@ -84,23 +85,54 @@ sentencesdataset = SentencesDataset()
 sentencesdataloader = DataLoader(sentencesdataset, batch_size=BATCH_SIZE, shuffle=True)
 logging.info(f"Dataset loaded with {len(sentencesdataset)} sentences")
 
-# Now tokenizing
+# Now training the tokenizer
 if __name__ == "__main__":
   # For training the tokenizer first time and then saving it.
-  logging.info(f"Now training tokenizer...")
-  tokenizer = Tokenizer(BPE(unk_token="[UNK]"))
-  tokenizer.pre_tokenizer = Whitespace()
-  trainer = BpeTrainer(special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"])
+  # it was the previous version...
+#   logging.info(f"Now training tokenizer...")
+#   tokenizer = Tokenizer(BPE(unk_token="[UNK]"))
+#   tokenizer.pre_tokenizer = Whitespace()
+#   trainer = BpeTrainer(special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"])
 
-  # Function to yield sentences from dataloader
+#   # Function to yield sentences from dataloader
   def dataloader_sentences_generator(dataloader):
       for batch in dataloader:
           for sentence in batch:  # Assuming each batch is a list of sentences
               yield sentence
 
-  # Train the tokenizer using the generator
-  tokenizer.train_from_iterator(dataloader_sentences_generator(sentencesdataloader), trainer)
+#   # Train the tokenizer using the generator
+#   tokenizer.train_from_iterator(dataloader_sentences_generator(sentencesdataloader), trainer)
 
-  # Save the tokenizer
-  tokenizer.save("tokenizer.json")
-  print("Done training tokenizer...")
+#   # Save the tokenizer
+#   tokenizer.save("tokenizer.json")
+#   print("Done training tokenizer...")
+
+# --------------------------------
+  from tokenizers import ByteLevelBPETokenizer
+  from tokenizers import ByteLevelBPETokenizer
+  from tokenizers.processors import BertProcessing
+  
+  special_tokens = ["[START]", "[END]", "[SEP]"]
+
+  tokenizer = ByteLevelBPETokenizer()
+  tokenizer.train_from_iterator(dataloader_sentences_generator(sentencesdataloader), vocab_size=52000, min_frequency=2, special_tokens=special_tokens)
+  tokenizer._tokenizer.post_processor = BertProcessing(
+    sep=("[SEP]", tokenizer.token_to_id("[SEP]")),
+    cls=("[START]", tokenizer.token_to_id("[START]")),
+    )
+  original_encode = tokenizer.encode
+  def encode_with_end_token(text):
+    encoded = original_encode(text)
+    encoded.ids.append(tokenizer.token_to_id("[END]"))
+    encoded.type_ids.append(0)
+    encoded.tokens.append("[END]")
+    encoded.offsets.append((0, 0))
+    encoded.attention_mask.append(1)
+    encoded.special_tokens_mask.append(1)
+    return encoded
+  
+  tokenizer.encode = encode_with_end_token
+
+# Step 6: Save the tokenizer
+tokenizer.save(".", "my_bytelevel_bpe")
+#   tokenizer.save(".", "my_bytelevel_bpe")

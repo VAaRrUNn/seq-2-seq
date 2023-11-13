@@ -7,6 +7,7 @@ from model import RNN
 from tokenizers import Tokenizer
 import torch
 import logging
+import yaml
 import sys
 from pathlib import Path
 
@@ -35,7 +36,7 @@ except Exception as e:
 def generate(model, start_token, max_words=10):
     model.eval()  # Put the model in evaluation mode
     words = [start_token]
-    hidden = model.initHidden(1)  # Initialize hidden state
+    hidden = model.initHidden()  # Initialize hidden state
 
     for _ in range(max_words - 1):
         input = torch.tensor([tokenizer.token_to_id(words[-1])], dtype=torch.long)
