@@ -1,4 +1,4 @@
-from pre_processing import sentencesdataloader
+from dataset_tokenizer import sentencesdataloader
 import logging
 from tokenizers import Tokenizer
 import torch
@@ -25,8 +25,11 @@ def train_rnn(model, sen, tokenizer, criterion, optim, h_prev=None):
         h_prev = model.initHidden()
 
     # tokenizing the sentence
+    # print(f"the sen is {sen}")
     tokens = torch.tensor(tokenizer.encode(sen).ids)
     loss = 0
+    # print(f"The ids are {tokens}")
+    # print(f"The tokens are {tokenizer.encode(sen).tokens}")
     for i in range(len(tokens)-1):
         h_prev, out = m(tokens[i], h_prev)
         out = out.view(-1)

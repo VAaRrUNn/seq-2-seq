@@ -59,6 +59,7 @@ class SentencesDataset(Dataset):
         out = list()
         for sentence in sentences:
             text = sentence["text"]
+            text = text.replace("`", '')
             out.append(text)  # list of sentences
         return out
 
