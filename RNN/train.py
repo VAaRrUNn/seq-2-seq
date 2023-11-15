@@ -7,6 +7,7 @@ import torch.nn as nn
 from model import RNN
 import yaml
 import sys
+import os
 from pathlib import Path
 import matplotlib.pyplot as plt
 
@@ -38,8 +39,11 @@ def train_rnn(model, sen, tokenizer, criterion, optim, h_prev=None):
     
 
 # 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Construct the absolute path of the byteBPE.json file
+tokenizer_path = os.path.join(script_dir, 'byteBPE.json')
+tokenizer = Tokenizer.from_file(tokenizer_path)
 
-tokenizer = Tokenizer.from_file("tokenizer.json")
 vocab_size = tokenizer.get_vocab_size()
 in_embd, h_embd = config["in_embd"], config["h_embd"]
 m = RNN(in_embd=in_embd, h_embd=h_embd, vocab_size=vocab_size)
@@ -62,5 +66,5 @@ plt.show()
 
 # saving...
 plt.plot(range(len(losses)), losses)
-plt.savefig('loss_plot.png')
-torch.save(m.state_dict(), 'model_weights.pth')
+plt.savefig(os.path.join(script_dir, 'loss_plot.png'))
+torch.save(m.state_dict(), os.path.join(script_dir, 'model_weights.pth'))

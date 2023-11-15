@@ -44,7 +44,8 @@ class RNN(nn.Module):
         """
         x_embd = self.x_embd(x)
         h = F.tanh(self.i2h(x_embd) + self.h2h(h_prev))
-        out = self.h2o(h)
+        out = F.softmax(self.h2o(h), dim=-1)
+
         return h, out
 
     def initHidden(self) -> torch.Tensor:

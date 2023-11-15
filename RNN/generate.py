@@ -9,6 +9,7 @@ import torch
 import logging
 import yaml
 import sys
+import os
 from pathlib import Path
 
 try:
@@ -19,14 +20,16 @@ except Exception as e:
     logging.error(f"Error loading configuration file: {e}")
     sys.exit(1)
 
-tokenizer = Tokenizer.from_file("byteBPE.json")
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+tokenizer = Tokenizer.from_file(os.path.join(script_dir, "byteBPE.json"))
 vocab_size = tokenizer.get_vocab_size()
 in_embd, h_embd = config["in_embd"], config["h_embd"]
 
 m = RNN(in_embd=in_embd, h_embd=h_embd, vocab_size=vocab_size)
 
 try:
-  state_dict = torch.load("model_weights.pth")
+  state_dict = torch.load(os.path.join(script_dir,"model_weights.pth"))
   m.load_state_dict(state_dict)
 except Exception as e:
   logging.error(f"Error loading the weights file: {e}")
@@ -35,19 +38,18 @@ except Exception as e:
 @torch.no_grad()
 def generate(model, start_token, max_words=10):
     model.eval()  # Put the model in evaluation mode
-    words = [start_token]
+    tokens = [tokenizer.token_to_id(start_token)]
     hidden = model.initHidden()  # Initialize hidden state
 
     for _ in range(max_words - 1):
-        input = torch.tensor([tokenizer.token_to_id(words[-1])], dtype=torch.long)
+        input = torch.tensor([tokens[-1]], dtype=torch.long)
         hidden, output = model(input, hidden)
-        next_word_id = output.argmax(dim=1).item()
-        next_word = tokenizer.id_to_token(next_word_id)
-        words.append(next_word)
-        if next_word == '[END]':  # Assuming [END] is your end-of-sequence token
+        next_word_id = torch.multinomial(output, num_samples=1).item()
+        tokens.append(next_word_id)
+        if tokenizer.id_to_token(next_word_id) == '[END]':  # Assuming [END] is your end-of-sequence token
             break
 
-    return ' '.join(words)
+    return tokenizer.decode(tokens)
 
 
 import argparse
