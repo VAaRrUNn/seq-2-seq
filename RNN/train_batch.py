@@ -4,46 +4,97 @@ Currently ongoing...
 import torch
 import os
 from torch.nn.utils.rnn import pad_sequence
-from pre_processing import sentencesdataloader
+from dataset_tokenizer import sentencesdataloader
+import sys
+import logging
+from model import RNN
+from tqdm.auto import tqdm 
+import torch.nn as nn
+import matplotlib.pyplot as plt
+from pathlib import Path
+import yaml
 from tokenizers import Tokenizer
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-tokenizer = Tokenizer.from_file(os.path.join(script_dir, "byteBPE.json"))
+def tokenize_and_pad_batch(tokenizer, sentences, pad_token='[PAD]'):
+    # Tokenize all sentences in the batch
+    tokenized_outputs = [tokenizer.encode(sentence) for sentence in sentences]
+    
+    # Find the length of the longest sentence (after tokenization)
+    max_len = max(len(tokens.ids) for tokens in tokenized_outputs)
 
-# Assuming sentences is a list of sentences
-tokenized_sentences = [torch.tensor(tokenizer.encode(sentence).ids) for sentence in sentences]
+    # Pad all sentences to the length of the longest one
+    padded_tokens = [tokens.ids + [tokenizer.token_to_id(pad_token)] * (max_len - len(tokens.ids)) for tokens in tokenized_outputs]
 
-_add_PAD_to_the_tokenizers_special_tokens_too_
-also confirm from GPT how to deal with PAD while training the model? where does end goes then?
-# Padding the sequences to have the same length
-padded_sequences = pad_sequence(tokenized_sentences, batch_first=True, padding_value=tokenizer.token_to_id('[PAD]'))
+    # Convert to tensor
+    padded_tokens_tensor = torch.tensor(padded_tokens, dtype=torch.long)
+    return padded_tokens_tensor
 
-def train_rnn(model, batch, tokenizer, criterion, optim, h_prev=None):
-    if h_prev is None:
-        h_prev = model.initHidden(batch.size(0))  # Initialize hidden state for the batch
+def train_rnn(model, batch_sentences, tokenizer, criterion, optim):
+    model.to(device)
+    model.train()
+    h_prev = model.initHidden()
+
+    # Tokenizing and padding the batch
+    tokens_tensor = tokenize_and_pad_batch(tokenizer, batch_sentences)
+    tokens_tensor = tokens_tensor.to(device)
 
     loss = 0
-    for i in range(batch.size(1) - 1):  # Iterate over time steps
-        input = batch[:, i]
-        target = batch[:, i + 1]
-        h_prev, out = model(input, h_prev)
-        loss += criterion(out, target)
+    for i in range(tokens_tensor.size(1) - 1): 
+        # Extracting the input and target sequences from the batch
+        input_seq = tokens_tensor[:, i]
+        target_seq = tokens_tensor[:, i + 1]
 
+        # Forward pass
+        h_prev, out = model(input_seq, h_prev)
+        # out = out.view(-1, vocab_size)  
+
+        # Compute loss (ignore padding tokens)
+        pad_token_id = tokenizer.token_to_id('[PAD]')
+        mask = target_seq != pad_token_id
+        loss += criterion(out[mask], target_seq[mask])
+
+    # Backward pass and optimization
     optim.zero_grad()
     loss.backward()
     optim.step()
-    return loss.item() / batch.size(1)  # Average loss per time step
+    return loss.item() / tokens_tensor.size(0)  # Normalize by batch size
 
-batch_size = 32  # Define your batch size
 
-# Assuming sentencesdataloader is an iterable of sentences
-for batch in sentencesdataloader:
-    # Tokenization and padding for each batch
-    tokenized_batch = [torch.tensor(tokenizer.encode(sen).ids) for sen in batch]
-    padded_batch = pad_sequence(tokenized_batch, batch_first=True, padding_value=tokenizer.token_to_id('[PAD]'))
+try:
+    config_path = Path(__file__).parent / "default_config.yaml"
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+except Exception as e:
+    logging.error(f"Error loading configuration file: {e}")
+    sys.exit(1)
 
-    # Making sure the batch is not too large
-    num_splits = len(padded_batch) // batch_size + (1 if len(padded_batch) % batch_size != 0 else 0)
-    for i in range(num_splits):
-        batch_subset = padded_batch[i * batch_size:(i + 1) * batch_size]
-        losses.append(train_rnn(m, batch_subset, tokenizer, criterion, optim))
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Construct the absolute path of the byteBPE.json file
+tokenizer_path = os.path.join(script_dir, 'byteBPE.json')
+tokenizer = Tokenizer.from_file(tokenizer_path)
+
+vocab_size = tokenizer.get_vocab_size()
+in_embd, h_embd = config["in_embd"], config["h_embd"]
+m = RNN(in_embd=in_embd, h_embd=h_embd, vocab_size=vocab_size)
+
+logging.info(f"Starting Training")
+
+criterion = nn.CrossEntropyLoss()
+optim = torch.optim.AdamW(params=m.parameters(), lr=1e-3)
+device = "cuda" if torch.cuda.is_available() else "cpu"
+losses = []
+
+for sentences in tqdm(sentencesdataloader):
+  losses.append(train_rnn(m, sentences, tokenizer, criterion, optim))
+
+logging.info(f"Done training")
+
+plt.plot(range(len(losses)), losses)
+plt.show()
+
+
+# saving...
+plt.plot(range(len(losses)), losses)
+plt.savefig(os.path.join(script_dir, 'loss_plot.png'))
+torch.save(m.state_dict(), os.path.join(script_dir, 'model_weights.pth'))
