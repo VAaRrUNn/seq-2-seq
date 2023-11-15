@@ -38,17 +38,18 @@ except Exception as e:
 
 
 @torch.no_grad()
-def generate(model, start_token, max_words=10):
+def generate(model, start_token, max_words=30, device="cpu"):
+    model.to(device)
     model.eval()  # Put the model in evaluation mode
     tokens = [tokenizer.token_to_id(start_token)]
-    hidden = model.initHidden()  # Initialize hidden state
+    hidden = model.initHidden().to(device)  # Initialize hidden state
 
     for _ in range(max_words - 1):
-        input = torch.tensor([tokens[-1]], dtype=torch.long)
-        hidden, output = model(input, hidden)
+        inp = torch.tensor([tokens[-1]], dtype=torch.long).to(device)
+        hidden, output = model(inp, hidden)
         next_word_id = torch.multinomial(output, num_samples=1).item()
         tokens.append(next_word_id)
-        if tokenizer.id_to_token(next_word_id) == '[END]':  # Assuming [END] is your end-of-sequence token
+        if tokenizer.id_to_token(next_word_id) == '[END]' or tokenizer.id_to_token(next_word_id) == '[PAD]': 
             break
 
     return tokenizer.decode(tokens)
@@ -61,8 +62,9 @@ def main():
                         help="Maximum number of words to generate")
     args = parser.parse_args()
 
-    start_token = '[START]'  # Replace with your actual start token
-    generated_text = generate(m, start_token, args.max_words)
+    start_token = '[START]'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    generated_text = generate(m, start_token, args.max_words, device)
     print(generated_text)
 
 

@@ -39,6 +39,7 @@ def train_rnn(model, batch_sentences, tokenizer, criterion, optim):
     tokens_tensor = tokens_tensor.to(device)
 
     loss = 0
+    h_prev = h_prev.to(device)
     for i in range(tokens_tensor.size(1) - 1): 
         # Extracting the input and target sequences from the batch
         input_seq = tokens_tensor[:, i]
@@ -77,6 +78,13 @@ tokenizer = Tokenizer.from_file(tokenizer_path)
 vocab_size = tokenizer.get_vocab_size()
 in_embd, h_embd = config["in_embd"], config["h_embd"]
 m = RNN(in_embd=in_embd, h_embd=h_embd, vocab_size=vocab_size)
+
+try:
+  state_dict = torch.load(os.path.join(script_dir,"model_weights.pth"))
+  m.load_state_dict(state_dict)
+  logging.info(f"Continuing training from where we left off... 🤗")
+except Exception as e:
+    logging.error(f"Error loading the weights file: {e}")
 
 logging.info(f"Starting Training")
 
