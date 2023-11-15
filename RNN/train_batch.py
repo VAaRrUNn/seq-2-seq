@@ -2,12 +2,13 @@
 Currently ongoing...
 """
 import torch
-from tokenizers import Tokenizer
+import os
 from torch.nn.utils.rnn import pad_sequence
 from pre_processing import sentencesdataloader
+from tokenizers import Tokenizer
 
-tokenizer = Tokenizer.from_file("byteBPE.json")
-sentences = [list_of_sentences_from_dataloader_here]
+script_dir = os.path.dirname(os.path.abspath(__file__))
+tokenizer = Tokenizer.from_file(os.path.join(script_dir, "byteBPE.json"))
 
 # Assuming sentences is a list of sentences
 tokenized_sentences = [torch.tensor(tokenizer.encode(sentence).ids) for sentence in sentences]

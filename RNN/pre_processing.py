@@ -13,6 +13,7 @@ import yaml
 import warnings
 from pathlib import Path
 import logging
+import os
 
 #
 from tokenizers import Tokenizer
@@ -99,11 +100,12 @@ if __name__ == "__main__":
             for sentence in batch:  # each batch is a list of sentences
                 yield sentence
 
-    from tokenizers import ByteLevelBPETokenizer
-    from tokenizers import ByteLevelBPETokenizer
-    from tokenizers.processors import BertProcessing
 
-    special_tokens = ["[START]", "[END]", "[SEP]"]
+  from tokenizers import ByteLevelBPETokenizer
+  from tokenizers import ByteLevelBPETokenizer
+  from tokenizers.processors import BertProcessing
+  
+  special_tokens = ["[START]", "[END]", "[SEP]", "[PAD]"]
 
     logging.info(f"Starting training tokenizer")
     tokenizer = ByteLevelBPETokenizer()
@@ -129,4 +131,8 @@ if __name__ == "__main__":
 
     tokenizer.encode = encode_with_end_token
 
-tokenizer.save("byteBPE.json")
+  script_dir = os.path.dirname(os.path.abspath(__file__))
+  # Construct the absolute path of the byteBPE.json file
+  tokenizer_path = os.path.join(script_dir, 'byteBPE.json')
+
+  tokenizer.save(tokenizer_path)
