@@ -52,10 +52,6 @@ class RNN(nn.Module):
         return torch.zeros(1, self.h_embd)
 
 
-
-
-
-
 if __name__ == "__main__":
   pass
   
