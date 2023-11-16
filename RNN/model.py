@@ -23,9 +23,10 @@ class RNN(nn.Module):
         h_embd: hidden states embeddings
     """
 
-    def __init__(self, in_embd: int, vocab_size: int, h_embd: int):
+    def __init__(self, in_embd: int, vocab_size: int, h_embd: int, dropout_p: float=0.3):
         super().__init__()
         self.h_embd = h_embd
+        self.dropout = nn.Dropout(dropout_p)
         self.x_embd = nn.Embedding(vocab_size, in_embd)
 
         self.i2h = nn.Linear(in_embd, h_embd)
@@ -44,6 +45,7 @@ class RNN(nn.Module):
         """
         x_embd = self.x_embd(x)
         h = F.tanh(self.i2h(x_embd) + self.h2h(h_prev))
+        h = self.dropout(h)
         out = F.softmax(self.h2o(h), dim=-1)
 
         return h, out

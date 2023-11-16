@@ -1,5 +1,11 @@
 """
-Currently ongoing...
+Trains the vanilla RNN model
+
+Loading and feeding of the sentences:
+  - First it loads a batch of sentences 
+  - Secondly it converts them into tokens then to tensor
+  - Then it dynamically pads the tensors according to the largest tensor using a padding token
+  - Then training...
 """
 import torch
 import os
@@ -29,7 +35,7 @@ def tokenize_and_pad_batch(tokenizer, sentences, pad_token='[PAD]'):
     padded_tokens_tensor = torch.tensor(padded_tokens, dtype=torch.long)
     return padded_tokens_tensor
 
-def train_rnn(model, batch_sentences, tokenizer, criterion, optim):
+def train_rnn(model, batch_sentences, tokenizer, criterion, optim, scheduler):
     model.to(device)
     model.train()
     h_prev = model.initHidden()
@@ -57,7 +63,7 @@ def train_rnn(model, batch_sentences, tokenizer, criterion, optim):
     # Backward pass and optimization
     optim.zero_grad()
     loss.backward()
-    optim.step()
+    scheduler.step()
     return loss.item() / tokens_tensor.size(0)  # Normalize by batch size
 
 
@@ -77,6 +83,7 @@ tokenizer = Tokenizer.from_file(tokenizer_path)
 
 vocab_size = tokenizer.get_vocab_size()
 in_embd, h_embd = config["in_embd"], config["h_embd"]
+epochs = config["epochs"]
 m = RNN(in_embd=in_embd, h_embd=h_embd, vocab_size=vocab_size)
 
 try:
@@ -89,12 +96,16 @@ except Exception as e:
 logging.info(f"Starting Training")
 
 criterion = nn.CrossEntropyLoss()
-optim = torch.optim.AdamW(params=m.parameters(), lr=1e-3)
+optim = torch.optim.AdamW(params=m.parameters(), lr=1e-3, weight_decay=1e-5)
+scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=10, gamma=0.1)
+
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 losses = []
-
-for sentences in tqdm(sentencesdataloader):
-  losses.append(train_rnn(m, sentences, tokenizer, criterion, optim))
+logging.info(f"Training on {device}")
+for epoch in tqdm(range(epochs)):
+  for sentences in sentencesdataloader:
+    losses.append(train_rnn(m, sentences, tokenizer, criterion, optim, scheduler))
 
 logging.info(f"Done training")
 
@@ -105,4 +116,8 @@ plt.show()
 # saving...
 plt.plot(range(len(losses)), losses)
 plt.savefig(os.path.join(script_dir, 'loss_plot.png'))
-torch.save(m.state_dict(), os.path.join(script_dir, 'model_weights.pth'))
+try:
+  torch.save(m.state_dict(), os.path.join(script_dir, 'model_weights.pth'))
+  logging.info(f"successfully saved weights...")
+except Exception as e:
+  logging.error(f"Error saving the weights file: {e}")
